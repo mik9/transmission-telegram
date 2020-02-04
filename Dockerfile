@@ -1,9 +1,13 @@
-FROM alpine:latest as certs
-RUN apk --update add ca-certificates
+FROM golang:alpine AS builder
+RUN apk add --no-cache git
+WORKDIR /go/src/transmission-telegram
+COPY . .
+RUN go get -v ./...
+RUN go install -v ./...
 
-FROM bash:latest
-COPY --from=certs /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
-COPY transmission-telegram /
-RUN chmod 777 transmission-telegram
+#final stage
+FROM alpine:latest
+RUN apk --no-cache add ca-certificates
+COPY --from=builder /go/bin/transmission-telegram /app
 
-ENTRYPOINT ["/transmission-telegram"]
+ENTRYPOINT ["/app"]
